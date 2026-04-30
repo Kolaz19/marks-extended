@@ -81,7 +81,7 @@ local function next_mark(lowercase, reverse)
 					return
 				end
 			end
-			--No mark bigger -> Just move to different mark
+			--No mark bigger -> Just move to first mark in table that is not the nearest mark
 			for _, val in ipairs(available_marks) do
 				if val.internal_number ~= nearest_mark_same_buffer.internal_number then
 					vim.cmd("'" .. val.mark_name)
@@ -89,7 +89,7 @@ local function next_mark(lowercase, reverse)
 				end
 			end
 		end
-		--Otherwise just move to first letter found
+		--Otherwise just move to first letter found (no marks in current buffer)
 		for _, val in ipairs(available_marks) do
 			vim.cmd("'" .. val.mark_name)
 			return
@@ -104,7 +104,7 @@ local function next_mark(lowercase, reverse)
 				return
 			end
 		end
-		--No mark bigger -> Just move to different mark
+		--No mark bigger -> Just move to first mark in table that is not the current mark
 		for _, val in ipairs(available_marks) do
 			if val.internal_number ~= cur_pos_mark.internal_number then
 				vim.cmd("'" .. val.mark_name)
