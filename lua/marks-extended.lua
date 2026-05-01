@@ -3,7 +3,8 @@ local m = {}
 local config = {
 	popup_existing = false,
 	keybind_popup_close = '<ESC>',
-	keybind_popup_delete_mark = '<CR>'
+	keybind_popup_delete_mark = '<CR>',
+	current_file_text = 'CURRENT_FILE'
 }
 
 function m.setup(opts)
@@ -13,6 +14,10 @@ function m.setup(opts)
 	end
 	if opts.keybind_popup_delete_mark then
 		config.keybind_popup_delete_mark = opts.keybind_popup_delete_mark
+	end
+
+	if opts.current_file_text then
+		config.current_file_text = opts.current_file_text
 	end
 end
 
@@ -169,7 +174,6 @@ local function get_local_marks()
 end
 
 local function popup_delete_marks(marklist)
-
 	-- Sort by mark name
 	table.sort(marklist, function(a, b)
 		return a.mark < b.mark
@@ -180,7 +184,12 @@ local function popup_delete_marks(marklist)
 	table.insert(lines, string.rep("-", 60))
 
 	for _, mark in ipairs(marklist) do
-		local line = string.sub(mark.mark, 2, 2) .. ' ' .. mark.file .. ' ' .. mark.pos[2]
+		local line
+		if mark.file then
+			line = string.sub(mark.mark, 2, 2) .. ' ' .. mark.file .. ' ' .. mark.pos[2]
+		else
+			line = string.sub(mark.mark, 2, 2) .. ' ' .. 'CURRENT FILE' .. mark.pos[2]
+		end
 		table.insert(lines, line)
 	end
 
