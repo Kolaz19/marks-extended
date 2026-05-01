@@ -25,6 +25,10 @@ function m.setup(opts)
 	if opts.popup_show_local_first then
 		config.popup_show_local_first = opts.popup_show_local_first
 	end
+
+	if opts.popup_sort_by_line_number then
+		config.popup_sort_by_line_number = opts.popup_sort_by_line_number
+	end
 end
 
 ---@param tab table
@@ -191,20 +195,26 @@ end
 ---@param marklist table
 ---@param popup_title string
 local function popup_delete_marks(marklist, popup_title)
-	if config.existing_window then
+	if #marklist == 0 then
+		vim.notify('No marks set', vim.log.levels.INFO)
+		return
+	end
+
+	if config.existing_window and vim.api.nvim_win_is_valid(config.existing_window) then
 		vim.api.nvim_set_current_win(config.existing_window)
 		return
 	end
+	config.existing_window = nil
+
 	local original_buffer = vim.api.nvim_get_current_buf()
 
 	-- Sort by mark name
 	table.sort(marklist, function(a, b)
-		if config.popup_show_local_first then
-			if a.mark:match("'%l") and b.mark:match("'%u") then
-				return true
-			elseif a.mark:match("'%u") and b.mark:match("'%l") then
-				return false
-			end
+		local a_is_local = a.mark:match("'%l") ~= nil
+		local b_is_local = b.mark:match("'%l") ~= nil
+
+		if config.popup_show_local_first and a_is_local ~= b_is_local then
+			return a_is_local
 		end
 
 		if config.popup_sort_by_line_number then
@@ -228,10 +238,6 @@ local function popup_delete_marks(marklist, popup_title)
 		table.insert(lines, line)
 	end
 
-	if #marklist == 0 then
-		vim.notify('No marks set', vim.log.levels.INFO)
-		return
-	end
 
 	-- Calculate window dimensions
 	local width = math.min(80, vim.o.columns - 4)
@@ -259,14 +265,21 @@ local function popup_delete_marks(marklist, popup_title)
 
 	-- Handle deletion of marks in popup window
 	local function on_button_press(popup_buffer, source_buffer, win)
-		local row = unpack(vim.api.nvim_win_get_cursor(win))
+		local row = vim.api.nvim_win_get_cursor(win)[1]
 		local line = vim.api.nvim_buf_get_lines(popup_buffer, row - 1, row, false)[1]
+		if row < 3 then return end
 		local mark_to_delete = string.sub(line, 1, 1)
 
+		local check
 		if mark_to_delete:match("%l") then
-			vim.api.nvim_buf_del_mark(source_buffer, mark_to_delete)
+			check = pcall(vim.api.nvim_buf_del_mark, source_buffer, mark_to_delete)
 		else
-			vim.api.nvim_del_mark(mark_to_delete)
+			check = pcall(vim.api.nvim_del_mark, mark_to_delete)
+		end
+
+		if not check then
+			vim.notify("Could not delete mark: " .. mark_to_delete, vim.log.levels.WARN)
+			return
 		end
 
 		vim.api.nvim_set_option_value("modifiable", true, { buf = popup_buffer })
@@ -283,7 +296,9 @@ local function popup_delete_marks(marklist, popup_title)
 	vim.api.nvim_win_set_cursor(win, { 3, 0 })
 
 	vim.keymap.set("n", config.keybind_popup_close, function()
-		vim.api.nvim_win_close(win, true)
+		if vim.api.nvim_win_is_valid(win) then
+			vim.api.nvim_win_close(win, true)
+		end
 	end, {
 		buffer = buf,
 		nowait = true,
@@ -299,26 +314,38 @@ local function popup_delete_marks(marklist, popup_title)
 		silent = true,
 	})
 
-	--Let user only open a new popup when old gets wiped
-	vim.api.nvim_create_autocmd("BufWipeout", {
-		buffer = buf,
-		once = true,
+	local group = vim.api.nvim_create_augroup("MarkDelAugroup Buffer " .. buf, {
+		clear = true,
+	})
+
+	vim.api.nvim_create_autocmd("WinLeave", {
+		group = group,
 		callback = function()
-			config.existing_window = nil
+			if not vim.api.nvim_win_is_valid(win) then
+				return
+			end
+
+			local leaving_win = vim.api.nvim_get_current_win()
+
+			if leaving_win ~= win then
+				return
+			end
+
+			vim.schedule(function()
+				if vim.api.nvim_win_is_valid(win) then
+					vim.api.nvim_win_close(win, true)
+				end
+			end)
 		end,
 	})
 
-	-- Close new window if buffer gets moved to another window
-	vim.api.nvim_create_autocmd("BufWinEnter", {
+	vim.api.nvim_create_autocmd("BufWipeout", {
+		group = group,
 		buffer = buf,
+		once = true,
 		callback = function()
-			local current_win = vim.api.nvim_get_current_win()
-
-			if current_win ~= win then
-				if vim.api.nvim_win_is_valid(current_win) then
-					vim.api.nvim_win_close(current_win, true)
-				end
-			end
+			pcall(vim.api.nvim_del_augroup_by_id, group)
+			config.existing_window = nil
 		end,
 	})
 end
