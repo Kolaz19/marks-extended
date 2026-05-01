@@ -1,7 +1,19 @@
 local m = {}
 
+local config = {
+	popup_existing = false,
+	keybind_popup_close = '<ESC>',
+	keybind_popup_delete_mark = '<CR>'
+}
+
 function m.setup(opts)
 	if not opts then return end
+	if opts.keybind_popup_close then
+		config.keybind_popup_close = opts.keybind_popup_close
+	end
+	if opts.keybind_popup_delete_mark then
+		config.keybind_popup_delete_mark = opts.keybind_popup_delete_mark
+	end
 end
 
 local function reverse_marklist(tab)
@@ -115,21 +127,98 @@ local function next_mark(lowercase, reverse)
 end
 
 local function set_next_mark(lowercase)
-  local from = lowercase and 'a' or 'A'
-  local to = lowercase and 'z' or 'Z'
-  for i = string.byte(from), string.byte(to) do
-    local mark = string.char(i)
+	local from = lowercase and 'a' or 'A'
+	local to = lowercase and 'z' or 'Z'
+	for i = string.byte(from), string.byte(to) do
+		local mark = string.char(i)
 
-    local pos = vim.fn.getpos("'" .. mark)
+		local pos = vim.fn.getpos("'" .. mark)
 
-    if pos[2] == 0 then
-      -- mark at current cursor position
-      vim.cmd("mark " .. mark)
-      return
-    end
-  end
+		if pos[2] == 0 then
+			-- mark at current cursor position
+			vim.cmd("mark " .. mark)
+			return
+		end
+	end
 
-  vim.notify("No available global marks (A–Z)", vim.log.levels.WARN)
+	vim.notify("No available global marks (A–Z)", vim.log.levels.WARN)
+end
+
+function m.popup_delete_global_marks()
+	-- Get all marks
+	local marks = vim.fn.getmarklist()
+	local global_marks = {}
+
+	for _, mark in ipairs(marks) do
+		if mark.mark:match("'%u") then -- Uppercase = global
+			table.insert(global_marks, mark)
+		end
+	end
+
+	-- Sort by mark name
+	table.sort(global_marks, function(a, b)
+		return a.mark < b.mark
+	end)
+
+	-- Format output
+	local lines = { "Global Marks" }
+	table.insert(lines, string.rep("-", 60))
+
+	for _, mark in ipairs(global_marks) do
+		local line = string.sub(mark.mark, 2, 2) .. ' ' .. mark.file .. ' ' .. mark.pos[2]
+		table.insert(lines, line)
+	end
+
+	if #global_marks == 0 then
+		vim.notify('No global marks set', vim.log.levels.INFO)
+		return
+	end
+
+	-- Calculate window dimensions
+	local width = math.min(80, vim.o.columns - 4)
+	local height = math.min(#lines + 2, vim.o.lines - 4)
+
+	-- Create buffer
+	local buf = vim.api.nvim_create_buf(false, true)
+	vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+
+	-- Configure floating window
+	local opts = {
+		relative = "editor",
+		width = width,
+		height = height,
+		row = math.floor((vim.o.lines - height) / 2),
+		col = math.floor((vim.o.columns - width) / 2),
+		style = "minimal",
+		border = "rounded",
+	}
+
+	local function on_button_press(buf_inner, win)
+		local row = unpack(vim.api.nvim_win_get_cursor(win))
+		if row < 3 then return end
+		local line = vim.api.nvim_buf_get_lines(buf_inner, row - 1, row, false)[1]
+		vim.cmd('delm ' .. string.sub(line, 1, 1))
+		vim.api.nvim_set_option_value("modifiable", true, { buf = buf_inner })
+		vim.api.nvim_buf_set_lines(buf, row - 1, row, false, {})
+		vim.api.nvim_set_option_value("modifiable", false, { buf = buf_inner })
+
+		if vim.api.nvim_buf_line_count(buf) == 2 then
+			vim.cmd("close")
+		end
+	end
+
+	local win = vim.api.nvim_open_win(buf, true, opts)
+	vim.api.nvim_win_set_cursor(win, { 3, 0 })
+	vim.api.nvim_set_option_value("modifiable", false, { buf = buf })
+
+	vim.api.nvim_buf_set_keymap(buf, "n", config.keybind_popup_close, "<cmd>close<CR>", { noremap = true, silent = true })
+	vim.keymap.set("n", config.keybind_popup_close, function()
+		on_button_press(buf, win)
+	end, {
+		buffer = buf,
+		nowait = true,
+		silent = true,
+	})
 end
 
 function m.jump_to_next_global_mark()
