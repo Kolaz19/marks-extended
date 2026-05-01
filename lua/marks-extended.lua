@@ -5,7 +5,8 @@ local config = {
 	keybind_popup_close = '<ESC>',
 	keybind_popup_delete_mark = '<CR>',
 	popup_current_file_text = 'CURRENT_FILE',
-	popup_show_local_first = false
+	popup_show_local_first = false,
+	popup_sort_by_line_number = false
 }
 
 function m.setup(opts)
@@ -204,6 +205,10 @@ local function popup_delete_marks(marklist, popup_title)
 			elseif a.mark:match("'%u") and b.mark:match("'%l") then
 				return false
 			end
+		end
+
+		if config.popup_sort_by_line_number then
+			return a.pos[2] < b.pos[2]
 		end
 
 		return a.mark < b.mark
