@@ -144,8 +144,7 @@ local function set_next_mark(lowercase)
 	vim.notify("No available global marks (A–Z)", vim.log.levels.WARN)
 end
 
-function m.popup_delete_global_marks()
-	-- Get all marks
+local function get_global_marks()
 	local marks = vim.fn.getmarklist()
 	local global_marks = {}
 
@@ -154,9 +153,25 @@ function m.popup_delete_global_marks()
 			table.insert(global_marks, mark)
 		end
 	end
+	return global_marks
+end
+
+local function get_local_marks()
+	local marks = vim.fn.getmarklist(vim.api.nvim_get_current_buf())
+	local local_marks = {}
+
+	for _, mark in ipairs(marks) do
+		if mark.mark:match("'%l") then
+			table.insert(local_marks, mark)
+		end
+	end
+	return local_marks
+end
+
+local function popup_delete_marks(marklist)
 
 	-- Sort by mark name
-	table.sort(global_marks, function(a, b)
+	table.sort(marklist, function(a, b)
 		return a.mark < b.mark
 	end)
 
@@ -164,12 +179,12 @@ function m.popup_delete_global_marks()
 	local lines = { "Global Marks" }
 	table.insert(lines, string.rep("-", 60))
 
-	for _, mark in ipairs(global_marks) do
+	for _, mark in ipairs(marklist) do
 		local line = string.sub(mark.mark, 2, 2) .. ' ' .. mark.file .. ' ' .. mark.pos[2]
 		table.insert(lines, line)
 	end
 
-	if #global_marks == 0 then
+	if #marklist == 0 then
 		vim.notify('No global marks set', vim.log.levels.INFO)
 		return
 	end
@@ -212,7 +227,7 @@ function m.popup_delete_global_marks()
 	vim.api.nvim_set_option_value("modifiable", false, { buf = buf })
 
 	vim.api.nvim_buf_set_keymap(buf, "n", config.keybind_popup_close, "<cmd>close<CR>", { noremap = true, silent = true })
-	vim.keymap.set("n", config.keybind_popup_close, function()
+	vim.keymap.set("n", config.keybind_popup_delete_mark, function()
 		on_button_press(buf, win)
 	end, {
 		buffer = buf,
@@ -243,6 +258,25 @@ end
 
 function m.set_next_global_mark()
 	set_next_mark(false)
+end
+
+function m.popup_delete_global_marks()
+	local marklist = get_global_marks()
+	popup_delete_marks(marklist)
+end
+
+function m.popup_delete_local_marks()
+	local marklist = get_local_marks()
+	popup_delete_marks(marklist)
+end
+
+function m.popup_delete_all_marks()
+	local marklist_local = get_local_marks()
+	local marklist = get_global_marks()
+	for _, mark_local in ipairs(marklist_local) do
+		table.insert(marklist, mark_local)
+	end
+	popup_delete_marks(marklist)
 end
 
 return m
