@@ -224,7 +224,7 @@ local function popup_delete_marks(marklist, popup_title)
 	end
 
 	if #marklist == 0 then
-		vim.notify('No global marks set', vim.log.levels.INFO)
+		vim.notify('No marks set', vim.log.levels.INFO)
 		return
 	end
 
@@ -252,7 +252,7 @@ local function popup_delete_marks(marklist, popup_title)
 		border = "rounded",
 	}
 
-	-- Handle deletion of marks in popup window 
+	-- Handle deletion of marks in popup window
 	local function on_button_press(popup_buffer, source_buffer, win)
 		local row = unpack(vim.api.nvim_win_get_cursor(win))
 		local line = vim.api.nvim_buf_get_lines(popup_buffer, row - 1, row, false)[1]
@@ -278,7 +278,7 @@ local function popup_delete_marks(marklist, popup_title)
 	vim.api.nvim_win_set_cursor(win, { 3, 0 })
 
 	vim.keymap.set("n", config.keybind_popup_close, function()
-			vim.api.nvim_win_close(win, true)
+		vim.api.nvim_win_close(win, true)
 	end, {
 		buffer = buf,
 		nowait = true,
@@ -300,6 +300,20 @@ local function popup_delete_marks(marklist, popup_title)
 		once = true,
 		callback = function()
 			config.existing_window = nil
+		end,
+	})
+
+	-- Close new window if buffer gets moved to another window
+	vim.api.nvim_create_autocmd("BufWinEnter", {
+		buffer = buf,
+		callback = function()
+			local current_win = vim.api.nvim_get_current_win()
+
+			if current_win ~= win then
+				if vim.api.nvim_win_is_valid(current_win) then
+					vim.api.nvim_win_close(current_win, true)
+				end
+			end
 		end,
 	})
 end
