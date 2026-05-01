@@ -213,8 +213,12 @@ local function popup_delete_marks(marklist, popup_title)
 		local a_is_local = a.mark:match("'%l") ~= nil
 		local b_is_local = b.mark:match("'%l") ~= nil
 
-		if config.popup_show_local_first and a_is_local ~= b_is_local then
-			return a_is_local
+		if a_is_local ~= b_is_local then
+			if config.popup_show_local_first then
+				return a_is_local
+			else
+				return not a_is_local
+			end
 		end
 
 		if config.popup_sort_by_line_number then
