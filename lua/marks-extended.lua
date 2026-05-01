@@ -188,7 +188,7 @@ local function popup_delete_marks(marklist)
 		if mark.file then
 			line = string.sub(mark.mark, 2, 2) .. ' ' .. mark.file .. ' ' .. mark.pos[2]
 		else
-			line = string.sub(mark.mark, 2, 2) .. ' ' .. 'CURRENT FILE' .. mark.pos[2]
+			line = string.sub(mark.mark, 2, 2) .. ' CURRENT FILE ' .. mark.pos[2]
 		end
 		table.insert(lines, line)
 	end
@@ -201,6 +201,8 @@ local function popup_delete_marks(marklist)
 	-- Calculate window dimensions
 	local width = math.min(80, vim.o.columns - 4)
 	local height = math.min(#lines + 2, vim.o.lines - 4)
+
+	local original_buffer = vim.api.nvim_get_current_buf()
 
 	-- Create buffer
 	local buf = vim.api.nvim_create_buf(false, true)
@@ -217,14 +219,21 @@ local function popup_delete_marks(marklist)
 		border = "rounded",
 	}
 
-	local function on_button_press(buf_inner, win)
+	local function on_button_press(popup_buffer, source_buffer, win)
 		local row = unpack(vim.api.nvim_win_get_cursor(win))
 		if row < 3 then return end
-		local line = vim.api.nvim_buf_get_lines(buf_inner, row - 1, row, false)[1]
-		vim.cmd('delm ' .. string.sub(line, 1, 1))
-		vim.api.nvim_set_option_value("modifiable", true, { buf = buf_inner })
+		local line = vim.api.nvim_buf_get_lines(popup_buffer, row - 1, row, false)[1]
+		local mark_to_delete = string.sub(line, 1, 1)
+
+		if mark_to_delete:match("%l") then
+			vim.api.nvim_buf_del_mark(source_buffer, mark_to_delete)
+		else
+			vim.cmd('delm ' .. mark_to_delete)
+		end
+
+		vim.api.nvim_set_option_value("modifiable", true, { buf = popup_buffer })
 		vim.api.nvim_buf_set_lines(buf, row - 1, row, false, {})
-		vim.api.nvim_set_option_value("modifiable", false, { buf = buf_inner })
+		vim.api.nvim_set_option_value("modifiable", false, { buf = popup_buffer })
 
 		if vim.api.nvim_buf_line_count(buf) == 2 then
 			vim.cmd("close")
@@ -237,7 +246,7 @@ local function popup_delete_marks(marklist)
 
 	vim.api.nvim_buf_set_keymap(buf, "n", config.keybind_popup_close, "<cmd>close<CR>", { noremap = true, silent = true })
 	vim.keymap.set("n", config.keybind_popup_delete_mark, function()
-		on_button_press(buf, win)
+		on_button_press(buf, original_buffer, win)
 	end, {
 		buffer = buf,
 		nowait = true,
