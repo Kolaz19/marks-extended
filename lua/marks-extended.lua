@@ -4,7 +4,7 @@ local config = {
 	popup_existing = false,
 	keybind_popup_close = '<ESC>',
 	keybind_popup_delete_mark = '<CR>',
-	current_file_text = 'CURRENT_FILE'
+	popup_current_file_text = 'CURRENT_FILE'
 }
 
 function m.setup(opts)
@@ -21,6 +21,8 @@ function m.setup(opts)
 	end
 end
 
+---@param tab table
+---@return table
 local function reverse_marklist(tab)
 	local new_tab = {}
 	for i = 1, #tab do
@@ -29,6 +31,9 @@ local function reverse_marklist(tab)
 	return new_tab
 end
 
+---Jump to the next mark
+---@param lowercase boolean
+---@param reverse boolean
 local function next_mark(lowercase, reverse)
 	local ascii_start = 64
 	if lowercase then ascii_start = 96 end
@@ -131,6 +136,7 @@ local function next_mark(lowercase, reverse)
 	end
 end
 
+---@param lowercase boolean
 local function set_next_mark(lowercase)
 	local from = lowercase and 'a' or 'A'
 	local to = lowercase and 'z' or 'Z'
@@ -149,6 +155,7 @@ local function set_next_mark(lowercase)
 	vim.notify("No available global marks (A–Z)", vim.log.levels.WARN)
 end
 
+---@return table
 local function get_global_marks()
 	local marks = vim.fn.getmarklist()
 	local global_marks = {}
@@ -161,6 +168,7 @@ local function get_global_marks()
 	return global_marks
 end
 
+---@return table
 local function get_local_marks()
 	local marks = vim.fn.getmarklist(vim.api.nvim_get_current_buf())
 	local local_marks = {}
@@ -173,14 +181,20 @@ local function get_local_marks()
 	return local_marks
 end
 
-local function popup_delete_marks(marklist)
+---Show floating popup to display marks
+---@param marklist table
+---@param popup_title string
+local function popup_delete_marks(marklist, popup_title)
+
+	local original_buffer = vim.api.nvim_get_current_buf()
+
 	-- Sort by mark name
 	table.sort(marklist, function(a, b)
 		return a.mark < b.mark
 	end)
 
 	-- Format output
-	local lines = { "Global Marks" }
+	local lines = { popup_title }
 	table.insert(lines, string.rep("-", 60))
 
 	for _, mark in ipairs(marklist) do
@@ -188,7 +202,7 @@ local function popup_delete_marks(marklist)
 		if mark.file then
 			line = string.sub(mark.mark, 2, 2) .. ' ' .. mark.file .. ' ' .. mark.pos[2]
 		else
-			line = string.sub(mark.mark, 2, 2) .. ' CURRENT FILE ' .. mark.pos[2]
+			line = string.sub(mark.mark, 2, 2) .. ' ' .. config.popup_current_file_text .. ' ' .. mark.pos[2]
 		end
 		table.insert(lines, line)
 	end
@@ -202,9 +216,8 @@ local function popup_delete_marks(marklist)
 	local width = math.min(80, vim.o.columns - 4)
 	local height = math.min(#lines + 2, vim.o.lines - 4)
 
-	local original_buffer = vim.api.nvim_get_current_buf()
 
-	-- Create buffer
+	-- Create popup buffer
 	local buf = vim.api.nvim_create_buf(false, true)
 	vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
 
@@ -280,12 +293,12 @@ end
 
 function m.popup_delete_global_marks()
 	local marklist = get_global_marks()
-	popup_delete_marks(marklist)
+	popup_delete_marks(marklist, 'GLOBAL MARKS')
 end
 
 function m.popup_delete_local_marks()
 	local marklist = get_local_marks()
-	popup_delete_marks(marklist)
+	popup_delete_marks(marklist, 'LOCAL MARKS')
 end
 
 function m.popup_delete_all_marks()
@@ -294,7 +307,7 @@ function m.popup_delete_all_marks()
 	for _, mark_local in ipairs(marklist_local) do
 		table.insert(marklist, mark_local)
 	end
-	popup_delete_marks(marklist)
+	popup_delete_marks(marklist, 'ALL MARKS')
 end
 
 return m
