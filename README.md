@@ -15,7 +15,7 @@ All functions shown here are all the functions that are exposed and can be used.
 
 ```lua
 	{
-		'kolaz19/marks-extended',
+		'kolaz19/marks-plus',
 		lazy = true,
 		opts = {
             -- Keybind to close the delete-mark popup
@@ -34,15 +34,15 @@ All functions shown here are all the functions that are exposed and can be used.
 		},
 		branch = 'main',
 		keys = {
-			{ 'mm', '<cmd>:lua require("marks-extended").set_next_local_mark()<cr>' },
-			{ 'mM', '<cmd>:lua require("marks-extended").set_next_global_mark()<cr>' },
-			{ '<leader>w', '<cmd>:lua require("marks-extended").jump_to_next_global_mark()<cr>' },
-			{ '<leader>q', '<cmd>:lua require("marks-extended").jump_to_previous_global_mark()<cr>' },
-			{ '<leader>e', '<cmd>:lua require("marks-extended").jump_to_next_local_mark()<cr>' },
-			{ '<leader>E', '<cmd>:lua require("marks-extended").jump_to_previous_local_mark()<cr>' },
-			{ '<leader>de', '<cmd>:lua require("marks-extended").popup_delete_global_marks()<cr>' },
-			{ '<leader>dr', '<cmd>:lua require("marks-extended").popup_delete_local_marks()<cr>' },
-			{ '<leader>df', '<cmd>:lua require("marks-extended").popup_delete_all_marks()<cr>' },
+			{ 'mm', '<cmd>:lua require("marks-plus").set_next_local_mark()<cr>' },
+			{ 'mM', '<cmd>:lua require("marks-plus").set_next_global_mark()<cr>' },
+			{ '<leader>w', '<cmd>:lua require("marks-plus").jump_to_next_global_mark()<cr>' },
+			{ '<leader>q', '<cmd>:lua require("marks-plus").jump_to_previous_global_mark()<cr>' },
+			{ '<leader>e', '<cmd>:lua require("marks-plus").jump_to_next_local_mark()<cr>' },
+			{ '<leader>E', '<cmd>:lua require("marks-plus").jump_to_previous_local_mark()<cr>' },
+			{ '<leader>de', '<cmd>:lua require("marks-plus").popup_delete_global_marks()<cr>' },
+			{ '<leader>dr', '<cmd>:lua require("marks-plus").popup_delete_local_marks()<cr>' },
+			{ '<leader>df', '<cmd>:lua require("marks-plus").popup_delete_all_marks()<cr>' },
 		}
 	}
 ```
@@ -50,10 +50,10 @@ All functions shown here are all the functions that are exposed and can be used.
 ## Function overview
 
 ```lua
-    require("marks-extended").jump_to_next_global_mark()
-    require("marks-extended").jump_to_previous_global_mark()
-    require("marks-extended").jump_to_next_local_mark()
-    require("marks-extended").jump_to_previous_local_mark()
+    require("marks-plus").jump_to_next_global_mark()
+    require("marks-plus").jump_to_previous_global_mark()
+    require("marks-plus").jump_to_next_local_mark()
+    require("marks-plus").jump_to_previous_local_mark()
 ```
 
 Jump with your cursor to the next global or local mark that has already been set.
@@ -66,16 +66,16 @@ There are a few rules in place to determine the next mark to jump to:
 4. If there is no mark in the current buffer, jump to the first or last mark in alphabetical order
 
 ```lua
-    require("marks-extended").set_next_local_mark()
-    require("marks-extended").set_next_global_mark()
+    require("marks-plus").set_next_local_mark()
+    require("marks-plus").set_next_global_mark()
 ```
 
 Set an available mark (determined alphabetically) at the current position.
 
 ```lua
-    require("marks-extended").popup_delete_global_marks()
-    require("marks-extended").popup_delete_local_marks()
-    require("marks-extended").popup_delete_all_marks()
+    require("marks-plus").popup_delete_global_marks()
+    require("marks-plus").popup_delete_local_marks()
+    require("marks-plus").popup_delete_all_marks()
 ```
 
 Open a popup where global/local marks can be deleted.
