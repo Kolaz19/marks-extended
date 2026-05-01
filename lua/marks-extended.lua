@@ -1,7 +1,7 @@
 local m = {}
 
 local config = {
-	popup_existing = false,
+	existing_window = nil,
 	keybind_popup_close = '<ESC>',
 	keybind_popup_delete_mark = '<CR>',
 	popup_current_file_text = 'CURRENT_FILE',
@@ -190,7 +190,8 @@ end
 ---@param marklist table
 ---@param popup_title string
 local function popup_delete_marks(marklist, popup_title)
-	if config.popup_existing == true then
+	if config.existing_window then
+		vim.api.nvim_set_current_win(config.existing_window)
 		return
 	end
 	local original_buffer = vim.api.nvim_get_current_buf()
@@ -233,8 +234,12 @@ local function popup_delete_marks(marklist, popup_title)
 
 	-- Create popup buffer
 	local buf = vim.api.nvim_create_buf(false, true)
-	config.popup_existing = true
 	vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+	vim.api.nvim_set_option_value("modifiable", false, { buf = buf })
+	vim.api.nvim_set_option_value("bufhidden", "wipe", { buf = buf })
+	vim.api.nvim_set_option_value("buftype", "nofile", { buf = buf })
+	vim.api.nvim_set_option_value("swapfile", false, { buf = buf })
+	vim.api.nvim_set_option_value("buflisted", false, { buf = buf })
 
 	-- Configure floating window
 	local opts = {
@@ -247,6 +252,7 @@ local function popup_delete_marks(marklist, popup_title)
 		border = "rounded",
 	}
 
+	-- Handle deletion of marks in popup window 
 	local function on_button_press(popup_buffer, source_buffer, win)
 		local row = unpack(vim.api.nvim_win_get_cursor(win))
 		local line = vim.api.nvim_buf_get_lines(popup_buffer, row - 1, row, false)[1]
@@ -255,28 +261,35 @@ local function popup_delete_marks(marklist, popup_title)
 		if mark_to_delete:match("%l") then
 			vim.api.nvim_buf_del_mark(source_buffer, mark_to_delete)
 		else
-			vim.cmd('delm ' .. mark_to_delete)
+			vim.api.nvim_del_mark(mark_to_delete)
 		end
 
 		vim.api.nvim_set_option_value("modifiable", true, { buf = popup_buffer })
-		vim.api.nvim_buf_set_lines(buf, row - 1, row, false, {})
+		vim.api.nvim_buf_set_lines(popup_buffer, row - 1, row, false, {})
 		vim.api.nvim_set_option_value("modifiable", false, { buf = popup_buffer })
 
-		if vim.api.nvim_buf_line_count(buf) == 2 then
-			vim.cmd("close")
+		if vim.api.nvim_buf_line_count(popup_buffer) == 2 then
+			vim.api.nvim_win_close(win, true)
 		end
 	end
 
 	local win = vim.api.nvim_open_win(buf, true, opts)
+	config.existing_window = win
 	vim.api.nvim_win_set_cursor(win, { 3, 0 })
-	vim.api.nvim_set_option_value("modifiable", false, { buf = buf })
-	vim.api.nvim_set_option_value("bufhidden", "wipe", { buf = buf })
 
-	vim.api.nvim_buf_set_keymap(buf, "n", config.keybind_popup_close, "<cmd>close<CR>", { noremap = true, silent = true })
+	vim.keymap.set("n", config.keybind_popup_close, function()
+			vim.api.nvim_win_close(win, true)
+	end, {
+		buffer = buf,
+		nowait = true,
+		noremap = true,
+		silent = true,
+	})
 	vim.keymap.set("n", config.keybind_popup_delete_mark, function()
 		on_button_press(buf, original_buffer, win)
 	end, {
 		buffer = buf,
+		noremap = true,
 		nowait = true,
 		silent = true,
 	})
@@ -286,7 +299,7 @@ local function popup_delete_marks(marklist, popup_title)
 		buffer = buf,
 		once = true,
 		callback = function()
-			config.popup_existing = false
+			config.existing_window = nil
 		end,
 	})
 end
