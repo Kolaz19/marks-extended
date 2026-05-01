@@ -1,7 +1,7 @@
-# Marks Extended
+# Marks Plus
 
 This is a simple plugin to navigate and set/manipulate local and global (letter) marks.
-This plugin should feel like Marks+.
+This plugin should feel like an addon to the builtin marks.
 
 - Navigating marks without remembering their letter
 - Set marks without thinking about which marks have already been set
