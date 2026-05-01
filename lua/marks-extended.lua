@@ -190,6 +190,9 @@ end
 ---@param marklist table
 ---@param popup_title string
 local function popup_delete_marks(marklist, popup_title)
+	if config.popup_existing == true then
+		return
+	end
 	local original_buffer = vim.api.nvim_get_current_buf()
 
 	-- Sort by mark name
@@ -228,9 +231,9 @@ local function popup_delete_marks(marklist, popup_title)
 	local width = math.min(80, vim.o.columns - 4)
 	local height = math.min(#lines + 2, vim.o.lines - 4)
 
-
 	-- Create popup buffer
 	local buf = vim.api.nvim_create_buf(false, true)
+	config.popup_existing = true
 	vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
 
 	-- Configure floating window
@@ -246,7 +249,6 @@ local function popup_delete_marks(marklist, popup_title)
 
 	local function on_button_press(popup_buffer, source_buffer, win)
 		local row = unpack(vim.api.nvim_win_get_cursor(win))
-		if row < 3 then return end
 		local line = vim.api.nvim_buf_get_lines(popup_buffer, row - 1, row, false)[1]
 		local mark_to_delete = string.sub(line, 1, 1)
 
@@ -268,6 +270,7 @@ local function popup_delete_marks(marklist, popup_title)
 	local win = vim.api.nvim_open_win(buf, true, opts)
 	vim.api.nvim_win_set_cursor(win, { 3, 0 })
 	vim.api.nvim_set_option_value("modifiable", false, { buf = buf })
+	vim.api.nvim_set_option_value("bufhidden", "wipe", { buf = buf })
 
 	vim.api.nvim_buf_set_keymap(buf, "n", config.keybind_popup_close, "<cmd>close<CR>", { noremap = true, silent = true })
 	vim.keymap.set("n", config.keybind_popup_delete_mark, function()
@@ -276,6 +279,15 @@ local function popup_delete_marks(marklist, popup_title)
 		buffer = buf,
 		nowait = true,
 		silent = true,
+	})
+
+	--Let user only open a new popup when old gets wiped
+	vim.api.nvim_create_autocmd("BufWipeout", {
+		buffer = buf,
+		once = true,
+		callback = function()
+			config.popup_existing = false
+		end,
 	})
 end
 
