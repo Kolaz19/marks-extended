@@ -4,7 +4,8 @@ local config = {
 	popup_existing = false,
 	keybind_popup_close = '<ESC>',
 	keybind_popup_delete_mark = '<CR>',
-	popup_current_file_text = 'CURRENT_FILE'
+	popup_current_file_text = 'CURRENT_FILE',
+	popup_show_local_first = false
 }
 
 function m.setup(opts)
@@ -16,8 +17,12 @@ function m.setup(opts)
 		config.keybind_popup_delete_mark = opts.keybind_popup_delete_mark
 	end
 
-	if opts.current_file_text then
-		config.current_file_text = opts.current_file_text
+	if opts.popup_current_file_text then
+		config.popup_current_file_text = opts.popup_current_file_text
+	end
+
+	if opts.popup_show_local_first then
+		config.popup_show_local_first = opts.popup_show_local_first
 	end
 end
 
@@ -185,11 +190,18 @@ end
 ---@param marklist table
 ---@param popup_title string
 local function popup_delete_marks(marklist, popup_title)
-
 	local original_buffer = vim.api.nvim_get_current_buf()
 
 	-- Sort by mark name
 	table.sort(marklist, function(a, b)
+		if config.popup_show_local_first then
+			if a.mark:match("'%l") and b.mark:match("'%u") then
+				return true
+			elseif a.mark:match("'%u") and b.mark:match("'%l") then
+				return false
+			end
+		end
+
 		return a.mark < b.mark
 	end)
 
