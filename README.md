@@ -1,18 +1,38 @@
 # Marks Extended
 
-This is a simple plugin to navigate and set local and global marks.
+This is a simple plugin to navigate and set/manipulate local and global (letter) marks.
+This plugin should feel like Marks+.
+
+- Navigating marks without remembering their letter
+- Set marks without thinking about which marks have already been set
+- Having an overview where you can delete marks easily
 
 ## Setup
 
 The `setup()` function is currently a no-op and can be omitted.
-Setup plugin with your favorite package manager, for example lazy.
-All functions shown here are all functions that are exposed and can be used.
+Set up the plugin with your favorite package manager, for example lazy.
+All functions shown here are all the functions that are exposed and can be used.
 
 ```lua
 	{
 		'kolaz19/marks-extended',
 		lazy = true,
-		config = true,
+		opts = {
+            -- Keybind to close the delete-mark popup
+			keybind_popup_close = '<ESC>',
+            -- Keybind to delete a mark shown in the popup
+			keybind_popup_delete_mark = '<CR>',
+            -- In the popup, global marks show the file where they are set
+            -- Local marks do not show the file, a fixed text can be chosen
+			popup_current_file_text = 'CURRENT_FILE',
+            -- Global marks are always shown on top
+            -- Set this option to true if local marks should be displayed on top
+			popup_show_local_first = false,
+            -- In the popup, marks are sorted alphabetically
+            -- Set this option to true if they should be sorted by their line number
+			popup_sort_by_line_number = false,
+		},
+		branch = 'main',
 		keys = {
 			{ 'mm', '<cmd>:lua require("marks-extended").set_next_local_mark()<cr>' },
 			{ 'mM', '<cmd>:lua require("marks-extended").set_next_global_mark()<cr>' },
@@ -20,11 +40,14 @@ All functions shown here are all functions that are exposed and can be used.
 			{ '<leader>q', '<cmd>:lua require("marks-extended").jump_to_previous_global_mark()<cr>' },
 			{ '<leader>e', '<cmd>:lua require("marks-extended").jump_to_next_local_mark()<cr>' },
 			{ '<leader>E', '<cmd>:lua require("marks-extended").jump_to_previous_local_mark()<cr>' },
+			{ '<leader>de', '<cmd>:lua require("marks-extended").popup_delete_global_marks()<cr>' },
+			{ '<leader>dr', '<cmd>:lua require("marks-extended").popup_delete_local_marks()<cr>' },
+			{ '<leader>df', '<cmd>:lua require("marks-extended").popup_delete_all_marks()<cr>' },
 		}
 	}
 ```
 
-## Explanation
+## Function overview
 
 ```lua
     require("marks-extended").jump_to_next_global_mark()
@@ -48,3 +71,13 @@ There are a few rules in place to determine the next mark to jump to:
 ```
 
 Set an available mark (determined alphabetically) at the current position.
+
+```lua
+    require("marks-extended").popup_delete_global_marks()
+    require("marks-extended").popup_delete_local_marks()
+    require("marks-extended").popup_delete_all_marks()
+```
+
+Open a popup where global/local marks can be deleted.
+Marks in the popup are always grouped locally/globally first independent of other sorting options.
+Just move the cursor over a mark and press the key designated for `keybind_popup_delete_mark`.
