@@ -264,7 +264,8 @@ local function popup_delete_marks(marklist, popup_title)
 	}
 
 	-- Handle deletion of marks in popup window
-	local function on_button_press(popup_buffer, source_buffer, win)
+	local function on_button_press(popup_buffer, source_buffer)
+		local win = vim.api.nvim_get_current_win()
 		local row = vim.api.nvim_win_get_cursor(win)[1]
 		local line = vim.api.nvim_buf_get_lines(popup_buffer, row - 1, row, false)[1]
 		if row < 3 then return end
@@ -306,7 +307,7 @@ local function popup_delete_marks(marklist, popup_title)
 		silent = true,
 	})
 	vim.keymap.set("n", config.keybind_popup_delete_mark, function()
-		on_button_press(buf, original_buffer, win)
+		on_button_press(buf, original_buffer)
 	end, {
 		buffer = buf,
 		noremap = true,
